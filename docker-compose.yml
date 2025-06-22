@@ -1,5 +1,4 @@
 services:
-
     app:
         build:
             context: docker
@@ -8,7 +7,8 @@ services:
         volumes:
             - .:/var/www
         depends_on:
-            - db
+            db:
+                condition: service_healthy
         networks:
             - authorization
 
@@ -26,6 +26,11 @@ services:
             - mysqldata:/var/lib/mysql
         networks:
             - authorization
+        healthcheck:
+            test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+            interval: 5s
+            timeout: 5s
+            retries: 5
 
     nginx:
         image: nginx:alpine

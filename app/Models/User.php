@@ -1,48 +1,81 @@
 <?php
-
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Foundation\Auth\User as Authenticatable;
-use Illuminate\Notifications\Notifiable;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
 
-class User extends Authenticatable
+class User extends Model
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable;
-
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var list<string>
-     */
     protected $fillable = [
         'name',
         'email',
         'password',
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var list<string>
-     */
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
-    protected function casts(): array
+    public static function createUser($name, $email, $password)
     {
-        return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-        ];
+        $hashedPassword = Hash::make($password);
+
+        $userId = DB::table('users')->insertGetId([
+            'name' => $name,
+            'email' => $email,
+            'password' => $hashedPassword,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        return self::getUserById($userId);
+    }
+
+    public static function getUserByEmail($email)
+    {
+        $userData = DB::table('users')->where('email', $email)->first();
+
+        if ($userData) {
+            $user = new self();
+            $user->id = $userData->id;
+            $user->name = $userData->name;
+            $user->email = $userData->email;
+            $user->password = $userData->password;
+            $user->created_at = $userData->created_at;
+            $user->updated_at = $userData->updated_at;
+            return $user;
+        }
+
+        return null;
+    }
+
+    public static function getUserById($id)
+    {
+        $userData = DB::table('users')->where('id', $id)->first();
+
+        if ($userData) {
+            $user = new self();
+            $user->id = $userData->id;
+            $user->name = $userData->name;
+            $user->email = $userData->email;
+            $user->password = $userData->password;
+            $user->created_at = $userData->created_at;
+            $user->updated_at = $userData->updated_at;
+            return $user;
+        }
+
+        return null;
+    }
+
+    public function checkPassword($password)
+    {
+        return Hash::check($password, $this->password);
+    }
+
+    public static function emailExists($email)
+    {
+        return DB::table('users')->where('email', $email)->exists();
     }
 }
